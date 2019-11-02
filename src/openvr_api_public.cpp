@@ -61,6 +61,10 @@ uint32_t VR_InitInternal2( EVRInitError *peError, vr::EVRApplicationType eApplic
 		return 0;
 	}
 
+	buttonMap[k_EButton_A] = "Button A";
+    buttonMap[k_EButton_ApplicationMenu] = "Button B";
+    buttonMap[k_EButton_Grip] = "Grip";
+
 	return ++g_nVRToken;
 }
 
