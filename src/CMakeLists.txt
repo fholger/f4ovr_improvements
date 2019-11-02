@@ -17,7 +17,7 @@ if(APPLE)
 elseif(WIN32)
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions( -DWIN64 )
-    set( LIBNAME "openvr_api64" )
+    #set( LIBNAME "openvr_api64" )
   endif()
 endif()
 

@@ -7,6 +7,7 @@
 #include "envvartools_public.h"
 #include "hmderrors_public.h"
 #include "vrpathregistry_public.h"
+#include "WrappedIVRSystem.h"
 #include <mutex>
 
 using vr::EVRInitError;
@@ -16,6 +17,9 @@ using vr::VRInitError_None;
 
 namespace vr
 {
+namespace {
+	WrappedIVRSystem wrappedSystem;
+}
 
 static void *g_pVRModule = NULL;
 static IVRClientCore *g_pHmdSystem = NULL;
@@ -163,7 +167,12 @@ void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peEr
 		return NULL;
 	}
 
-	return g_pHmdSystem->GetGenericInterface(pchInterfaceVersion, peError);
+	void *interface = g_pHmdSystem->GetGenericInterface(pchInterfaceVersion, peError);
+	if (strcmp(pchInterfaceVersion, IVRSystem_Version) == 0) {
+		wrappedSystem.wrapped = (IVRSystem*)interface;
+		return &wrappedSystem;
+	}
+	return interface;
 }
 
 bool VR_IsInterfaceVersionValid(const char *pchInterfaceVersion)
