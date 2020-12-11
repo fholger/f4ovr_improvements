@@ -1,16 +1,7 @@
 #pragma once
 #include "openvr.h"
-#include <fstream>
-#include <bitset>
-#include <map>
 
 namespace vr {
-    std::map<int, std::string> buttonMap;
-    std::ostream &log() {
-        static std::ofstream logFile("openvr_debug.txt");
-        return logFile;
-    }
-
 	class WrappedIVRSystem : public IVRSystem {
 	public:
 		IVRSystem *wrapped;
@@ -105,7 +96,6 @@ namespace vr {
 
 		virtual bool GetBoolTrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, ETrackedPropertyError *pError = 0L ) {
 			bool result = wrapped->GetBoolTrackedDeviceProperty(unDeviceIndex, prop, pError);
-            //log() << "GetBoolTrackedDeviceProperty " << unDeviceIndex << " " << prop << " = " << result << "\n";
             return result;
 		}
 
@@ -119,30 +109,11 @@ namespace vr {
 				// always report the first axis as a Joystick
 				result = k_eControllerAxis_Joystick;
 			}
-			//log() << "GetInt32TrackedDeviceProperty " << unDeviceIndex << " " << prop << " = " << result << "\n";
 			return result;
 		}
 
 		virtual uint64_t GetUint64TrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, ETrackedPropertyError *pError = 0L ) {
-			uint64_t result = wrapped->GetUint64TrackedDeviceProperty(unDeviceIndex, prop, pError);
-            //log() << "GetUint64TrackedDeviceProperty " << unDeviceIndex << " " << prop << " = " << result << "\n";
-            if (prop == Prop_SupportedButtons_Uint64) {
-                // there seems to be a bug in SteamVR which stops reporting the A button at certain points
-                // so for now ensure we always report all the buttons we need for Touch emulation!
-                result |= ButtonMaskFromId(k_EButton_A) | ButtonMaskFromId(k_EButton_Grip) | ButtonMaskFromId(k_EButton_ApplicationMenu) | ButtonMaskFromId(k_EButton_Axis0) | ButtonMaskFromId(k_EButton_Axis1);
-
-                //log() << "Supported buttons " << unDeviceIndex << ": ";
-                //if (result & ButtonMaskFromId(k_EButton_A)) log() << "A ";
-                //if (result & ButtonMaskFromId(k_EButton_ApplicationMenu)) log() << "B ";
-                //if (result & ButtonMaskFromId(k_EButton_Grip)) log() << "Grip ";
-                //if (result & ButtonMaskFromId(k_EButton_Axis0)) log() << "Axis0 ";
-                //if (result & ButtonMaskFromId(k_EButton_Axis1)) log() << "Axis1 ";
-                //if (result & ButtonMaskFromId(k_EButton_Axis2)) log() << "Axis2 ";
-                //if (result & ButtonMaskFromId(k_EButton_Axis3)) log() << "Axis3 ";
-                //if (result & ButtonMaskFromId(k_EButton_Axis4)) log() << "Axis4 ";
-                //log() << "\n";
-            }
-            return result;
+			return wrapped->GetUint64TrackedDeviceProperty(unDeviceIndex, prop, pError);
 		}
 
 		virtual HmdMatrix34_t GetMatrix34TrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, ETrackedPropertyError *pError = 0L ) {
@@ -159,7 +130,6 @@ namespace vr {
 				// This is how FO4VR decides whether it's dealing with Wands or Touch controllers (facepalm)
 				strncpy(pchValue, "oculus", unBufferSize);
 			}
-			//log() << "GetStringTrackedDeviceProperty " << unDeviceIndex << " " << prop << " = " << pchValue << "\n";
 			return ret;
 		}
 
@@ -168,16 +138,7 @@ namespace vr {
 		}
 
 		virtual bool PollNextEvent( VREvent_t *pEvent, uint32_t uncbVREvent ) {
-			bool result = wrapped->PollNextEvent(pEvent, uncbVREvent);
-			if (result) {
-			    //log() << "Polled event for device " << pEvent->trackedDeviceIndex << ": " << pEvent->eventType << "\n";
-			    if (pEvent->eventType == VREvent_ButtonPress && buttonMap.find(pEvent->data.controller.button) != buttonMap.end()) {
-			        //log() << "Button pressed: " << buttonMap[pEvent->data.controller.button] << std::endl;
-			    } else if (pEvent->eventType == VREvent_ButtonUnpress && buttonMap.find(pEvent->data.controller.button) != buttonMap.end()) {
-                    //log() << "Button released: " << buttonMap[pEvent->data.controller.button] << std::endl;
-			    }
-			}
-			return result;
+			return wrapped->PollNextEvent(pEvent, uncbVREvent);
 		}
 
 		virtual bool PollNextEventWithPose( ETrackingUniverseOrigin eOrigin, VREvent_t *pEvent, uint32_t uncbVREvent, vr::TrackedDevicePose_t *pTrackedDevicePose ) {
@@ -193,15 +154,7 @@ namespace vr {
 		}
 
 		virtual bool GetControllerState( vr::TrackedDeviceIndex_t unControllerDeviceIndex, vr::VRControllerState_t *pControllerState, uint32_t unControllerStateSize ) {
-			bool result = wrapped->GetControllerState(unControllerDeviceIndex, pControllerState, unControllerStateSize);
-
-			for (std::map<int, std::string>::const_iterator it = buttonMap.begin(); it != buttonMap.end(); ++it) {
-			    if (pControllerState->ulButtonPressed & ButtonMaskFromId((EVRButtonId)it->first)) {
-			        //log() << "Controller " << unControllerDeviceIndex << " " << it->second << " pressed\n";
-			    }
-			}
-
-            return result;
+			return wrapped->GetControllerState(unControllerDeviceIndex, pControllerState, unControllerStateSize);
 		}
 
 		virtual bool GetControllerStateWithPose( ETrackingUniverseOrigin eOrigin, vr::TrackedDeviceIndex_t unControllerDeviceIndex, vr::VRControllerState_t *pControllerState, uint32_t unControllerStateSize, TrackedDevicePose_t *pTrackedDevicePose ) {
