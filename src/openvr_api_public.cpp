@@ -8,6 +8,7 @@
 #include "hmderrors_public.h"
 #include "vrpathregistry_public.h"
 #include "WrappedIVRSystem.h"
+#include "WrappedIVRCompositor.h"
 #include <mutex>
 
 using vr::EVRInitError;
@@ -19,6 +20,7 @@ namespace vr
 {
 namespace {
 	WrappedIVRSystem wrappedSystem;
+	WrappedIVRCompositor wrappedCompositor;
 }
 
 static void *g_pVRModule = NULL;
@@ -171,6 +173,10 @@ void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peEr
 	if (strcmp(pchInterfaceVersion, IVRSystem_Version) == 0) {
 		wrappedSystem.wrapped = (IVRSystem*)interface;
 		return &wrappedSystem;
+	}
+	if (strcmp(pchInterfaceVersion, IVRCompositor_Version) == 0) {
+		wrappedCompositor.wrapped = (IVRCompositor*)interface;
+		return &wrappedCompositor;
 	}
 	return interface;
 }

@@ -22,7 +22,7 @@ elseif(WIN32)
 endif()
 
 # Add include folders.
-include_directories(${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/headers ${CMAKE_SOURCE_DIR}/src/vrcommon)
+include_directories(${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/headers ${CMAKE_SOURCE_DIR}/src/vrcommon ${CMAKE_CURRENT_BINARY_DIR})
 
 if(USE_CUSTOM_LIBCXX)
 	link_directories(
@@ -43,11 +43,20 @@ set(VRCOMMON_FILES
 	vrcommon/hmderrors_public.cpp
 	vrcommon/vrpathregistry_public.cpp
 	vrcommon/strtools_public.cpp
+	vrcommon/WrappedIVRSystem.h
+	vrcommon/WrappedIVRCompositor.h
+	vrcommon/WrappedIVRCompositor.cpp
+	vrcommon/Config.h
+)
+set(SHADER_FILES
+    shaders/fullscreen_tri.vert.hlsl
+    shaders/cas.frag.hlsl
 )
 
 set(SOURCE_FILES
 	${CORE_FILES}
 	${VRCOMMON_FILES}
+    ${SHADER_FILES}
 )
 
 source_group("Src" FILES
@@ -56,6 +65,10 @@ source_group("Src" FILES
 
 source_group("VRCommon" FILES
 	${VRCOMMON_FILES}
+)
+
+source_group("Shaders" FILES
+    ${SHADER_FILES}
 )
 
 # Build the library.
@@ -90,6 +103,15 @@ endif()
 if(USE_CUSTOM_LIBCXX)
 	set(EXTRA_LIBS ${EXTRA_LIBS} c++ c++abi)
 endif()
+
+set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_TYPE Vertex)
+set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_MODEL "4.1")
+set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_tri_compiled.h")
+set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_VSFullscreenTri")
+set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_TYPE Pixel)
+set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_MODEL "4.1")
+set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_cas_compiled.h")
+set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_PSCas")
 
 target_link_libraries(${LIBNAME} ${EXTRA_LIBS})
 
