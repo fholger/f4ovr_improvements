@@ -23,7 +23,11 @@ namespace vr {
 					Json::Value sharpen = root.get("sharpen", Json::Value());
 					config.casEnabled = sharpen.get("enabled", false).asBool();
 					config.sharpness = sharpen.get("sharpness", 1.0).asFloat();
+					if (config.sharpness < 0) config.sharpness = 0;
+					if (config.sharpness > 1) config.sharpness = 1;
 					config.casUpscale = sharpen.get("upscale", 1.0).asFloat();
+					if (config.casUpscale < 1) config.casUpscale = 1;
+					if (config.casUpscale > 2) config.casUpscale = 2;
 					config.casAlternate = sharpen.get("alternate", false).asBool();
 				}
 			} catch (...) {
