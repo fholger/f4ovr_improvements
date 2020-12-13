@@ -172,6 +172,7 @@ void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peEr
 	void *interface = g_pHmdSystem->GetGenericInterface(pchInterfaceVersion, peError);
 	if (strcmp(pchInterfaceVersion, IVRSystem_Version) == 0) {
 		wrappedSystem.wrapped = (IVRSystem*)interface;
+		wrappedCompositor.system = wrappedSystem.wrapped;
 		return &wrappedSystem;
 	}
 	if (strcmp(pchInterfaceVersion, IVRCompositor_Version) == 0) {

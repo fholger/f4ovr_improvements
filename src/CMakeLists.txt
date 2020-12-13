@@ -48,15 +48,18 @@ set(VRCOMMON_FILES
 	vrcommon/WrappedIVRCompositor.cpp
 	vrcommon/Config.h
 )
-set(SHADER_FILES
-    shaders/fullscreen_tri.vert.hlsl
-    shaders/cas.frag.hlsl
+set(CAS_FILES
+	cas/ffx_a.h
+	cas/ffx_cas.h
+	cas/cas.compute.h
+	cas/cas.sharpen.hlsl
+	cas/cas.upscale.hlsl
 )
 
 set(SOURCE_FILES
 	${CORE_FILES}
 	${VRCOMMON_FILES}
-    ${SHADER_FILES}
+    ${CAS_FILES}
 )
 
 source_group("Src" FILES
@@ -67,8 +70,8 @@ source_group("VRCommon" FILES
 	${VRCOMMON_FILES}
 )
 
-source_group("Shaders" FILES
-    ${SHADER_FILES}
+source_group("CAS" FILES
+    ${CAS_FILES}
 )
 
 # Build the library.
@@ -104,14 +107,14 @@ if(USE_CUSTOM_LIBCXX)
 	set(EXTRA_LIBS ${EXTRA_LIBS} c++ c++abi)
 endif()
 
-set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_TYPE Vertex)
-set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_MODEL "4.1")
-set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_tri_compiled.h")
-set_property(SOURCE shaders/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_VSFullscreenTri")
-set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_TYPE Pixel)
-set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_MODEL "4.1")
-set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_cas_compiled.h")
-set_property(SOURCE shaders/cas.frag.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_PSCas")
+set_property(SOURCE cas/cas.sharpen.hlsl PROPERTY VS_SHADER_TYPE Compute)
+set_property(SOURCE cas/cas.sharpen.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE cas/cas.sharpen.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_cas_sharpen.h")
+set_property(SOURCE cas/cas.sharpen.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_CASSharpenShader")
+set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_TYPE Compute)
+set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_cas_upscale.h")
+set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_CASUpscaleShader")
 
 target_link_libraries(${LIBNAME} ${EXTRA_LIBS})
 
