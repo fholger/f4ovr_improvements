@@ -7,9 +7,10 @@ namespace vr {
 	
 	struct Config {
 		bool enableOculusEmulation = true;
-		float renderScale = 1.f;
+		float casUpscale = 1.f;
 		bool casEnabled = false;
 		float sharpness = 1.f;
+		bool casAlternate = false;
 
 		static Config Load() {
 			Config config;
@@ -19,10 +20,11 @@ namespace vr {
 					Json::Value root;
 					configFile >> root;
 					config.enableOculusEmulation = root.get( "enable_oculus_emulation", true ).asBool();
-					config.renderScale = root.get("render_scale", 1.0).asFloat();
 					Json::Value sharpen = root.get("sharpen", Json::Value());
 					config.casEnabled = sharpen.get("enabled", false).asBool();
 					config.sharpness = sharpen.get("sharpness", 1.0).asFloat();
+					config.casUpscale = sharpen.get("upscale", 1.0).asFloat();
+					config.casAlternate = sharpen.get("alternate", false).asBool();
 				}
 			} catch (...) {
 				log() << "Could not read config file.\n";

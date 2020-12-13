@@ -21,7 +21,7 @@ namespace vr {
 
 	struct WrappedIVRCompositor::CASRenderResources {
 		bool created = false;
-		bool enabled = false;
+		bool enabled = true;
 		DWORD lastSwitch = 0;
 		ComPtr<ID3D11Device> device;
 		ComPtr<ID3D11DeviceContext> context;
@@ -44,17 +44,16 @@ namespace vr {
 			tex->GetDesc( &std );
 
 			// create output texture
-			system->GetRecommendedRenderTargetSize( &outputWidth, &outputHeight );
-			outputWidth *= 2;
-			outputWidth = std.Width;
-			outputHeight = std.Height;
+			outputWidth = std.Width * config.casUpscale;
+			outputHeight = std.Height * config.casUpscale;
+			log() << "Creating CAS texture of size " << outputWidth << "x" << outputHeight << "\n";
 			D3D11_TEXTURE2D_DESC td;
 			td.Width = outputWidth;
 			td.Height = outputHeight;
 			td.MipLevels = 1;
 			td.CPUAccessFlags = 0;
 			td.Usage = D3D11_USAGE_DEFAULT;
-			td.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+			td.BindFlags = D3D11_BIND_UNORDERED_ACCESS|D3D11_BIND_SHADER_RESOURCE|D3D11_BIND_RENDER_TARGET;
 			td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			td.MiscFlags = 0;
 			td.SampleDesc.Count = 1;
@@ -74,8 +73,10 @@ namespace vr {
 			bool sharpenOnly = std.Width == td.Width && std.Height == td.Height;
 			HRESULT result;
 			if (sharpenOnly) {
+				log() << "Using CAS in sharpen-only mode\n";
 				result = device->CreateComputeShader( g_CASSharpenShader, sizeof(g_CASSharpenShader), nullptr, casComputeShader.GetAddressOf() );
 			} else {
+				log() << "Using CAS in upscale mode\n";
 				result = device->CreateComputeShader( g_CASUpscaleShader, sizeof(g_CASUpscaleShader), nullptr, casComputeShader.GetAddressOf() );
 			}
 			if (FAILED(result)) {
@@ -119,12 +120,17 @@ namespace vr {
 				device->CreateShaderResourceView( tex, &svd, inputTextureViews[tex].GetAddressOf() );
 			}
 
+			context->OMSetRenderTargets( 0, nullptr, nullptr );
 			context->CSSetShader( casComputeShader.Get(), nullptr, 0 );
 			UINT uavCount = -1;
 			context->CSSetUnorderedAccessViews( 0, 1, outputTextureView.GetAddressOf(), &uavCount );
 			context->CSSetConstantBuffers( 0, 1, shaderConstantsBuffer.GetAddressOf() );
 			context->CSSetShaderResources( 0, 1, inputTextureViews[tex].GetAddressOf() );
 			context->Dispatch( (outputWidth+15)>>4, (outputHeight+15)>>4, 1 );
+			context->CSSetShaderResources( 0, 0, nullptr );
+			context->CSSetUnorderedAccessViews( 0, 0, nullptr, nullptr );
+			context->CSSetConstantBuffers( 0, 0, nullptr );
+			context->CSSetShader( nullptr, nullptr, 0 );
 		}
 	};
 
@@ -142,16 +148,12 @@ namespace vr {
 		}
 
 		if (casResources && casResources->created) {
-			if (GetTickCount() - casResources->lastSwitch > 2000) {
+			if (GetTickCount() - casResources->lastSwitch > 5000 && eEye == Eye_Left) {
 				casResources->lastSwitch = GetTickCount();
 				casResources->enabled = !casResources->enabled;
 			}
-			if (casResources->enabled) {
-				Texture_t replacedTexture;
-				replacedTexture.eType = TextureType_DirectX;
-				replacedTexture.eColorSpace = ColorSpace_Linear;
-				replacedTexture.handle = casResources->outputTexture.Get();
-				return wrapped->Submit( eEye, &replacedTexture, pBounds, nSubmitFlags );
+			if (casResources->enabled || !config.casAlternate) {
+				const_cast<Texture_t*>(pTexture)->handle = casResources->outputTexture.Get();
 			}
 		}
 

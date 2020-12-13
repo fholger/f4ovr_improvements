@@ -14,9 +14,7 @@ namespace vr {
 
 		virtual void GetRecommendedRenderTargetSize( uint32_t *pnWidth, uint32_t *pnHeight ) {
 			wrapped->GetRecommendedRenderTargetSize(pnWidth, pnHeight);
-			*pnWidth *= std::sqrt(config.renderScale);
-			*pnHeight *= std::sqrt(config.renderScale);
-			log() << "Render resolution " << *pnWidth << "x" << *pnHeight << " at render scale " << config.renderScale << "\n";
+			log() << "Render resolution " << *pnWidth << "x" << *pnHeight << "\n";
 		}
 
 		virtual HmdMatrix44_t GetProjectionMatrix( EVREye eEye, float fNearZ, float fFarZ ) {
