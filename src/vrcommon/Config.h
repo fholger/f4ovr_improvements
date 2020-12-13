@@ -6,7 +6,7 @@ namespace vr {
 	std::ostream& log();
 	
 	struct Config {
-		bool fixOculusEmulation = true;
+		bool enableOculusEmulation = true;
 		float renderScale = 1.f;
 		bool casEnabled = false;
 		float sharpness = 1.f;
@@ -18,7 +18,7 @@ namespace vr {
 				if (configFile.is_open()) {
 					Json::Value root;
 					configFile >> root;
-					config.fixOculusEmulation = root.get( "fix_oculus_emulation", true ).asBool();
+					config.enableOculusEmulation = root.get( "enable_oculus_emulation", true ).asBool();
 					config.renderScale = root.get("render_scale", 1.0).asFloat();
 					Json::Value sharpen = root.get("sharpen", Json::Value());
 					config.casEnabled = sharpen.get("enabled", false).asBool();

@@ -6,7 +6,7 @@
 
 namespace vr {
 	std::ostream& log();
-	
+
 	class WrappedIVRSystem : public IVRSystem {
 	public:
 		IVRSystem *wrapped;
@@ -114,7 +114,7 @@ namespace vr {
 
 		virtual int32_t GetInt32TrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, ETrackedPropertyError *pError = 0L ) {
 			int32_t result = wrapped->GetInt32TrackedDeviceProperty(unDeviceIndex, prop, pError);
-			if (prop == Prop_Axis0Type_Int32) {
+			if (prop == Prop_Axis0Type_Int32 && config.enableOculusEmulation) {
 				// always report the first axis as a Joystick
 				result = k_eControllerAxis_Joystick;
 			}
@@ -135,8 +135,7 @@ namespace vr {
 
 		virtual uint32_t GetStringTrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize, ETrackedPropertyError *pError = 0L ) {
 			uint32_t ret = wrapped->GetStringTrackedDeviceProperty(unDeviceIndex, prop, pchValue, unBufferSize, pError);
-			if (prop == Prop_TrackingSystemName_String) {
-				// This is how FO4VR decides whether it's dealing with Wands or Touch controllers (facepalm)
+			if (prop == Prop_TrackingSystemName_String && config.enableOculusEmulation) {
 				strncpy(pchValue, "oculus", unBufferSize);
 			}
 			return ret;

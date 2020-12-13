@@ -1,10 +1,12 @@
 #pragma once
 #include "openvr.h"
+#include "Config.h"
 
 namespace vr {
 	class WrappedIVRCompositor : public IVRCompositor {
 	public:
 		IVRCompositor *wrapped;
+		Config config = Config::Load();
 
 		virtual void SetTrackingSpace( ETrackingUniverseOrigin eOrigin ) { wrapped->SetTrackingSpace( eOrigin ); }
 
