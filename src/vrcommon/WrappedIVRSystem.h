@@ -2,7 +2,6 @@
 #include "openvr.h"
 #include "Config.h"
 #include <iosfwd>
-#include <cmath>
 
 namespace vr {
 	std::ostream& log();
@@ -10,7 +9,6 @@ namespace vr {
 	class WrappedIVRSystem : public IVRSystem {
 	public:
 		IVRSystem *wrapped;
-		Config config = Config::Load();
 
 		virtual void GetRecommendedRenderTargetSize( uint32_t *pnWidth, uint32_t *pnHeight ) {
 			wrapped->GetRecommendedRenderTargetSize(pnWidth, pnHeight);
@@ -112,7 +110,7 @@ namespace vr {
 
 		virtual int32_t GetInt32TrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, ETrackedPropertyError *pError = 0L ) {
 			int32_t result = wrapped->GetInt32TrackedDeviceProperty(unDeviceIndex, prop, pError);
-			if (prop == Prop_Axis0Type_Int32 && config.enableOculusEmulation) {
+			if (prop == Prop_Axis0Type_Int32 && Config::Instance().enableOculusEmulationFix) {
 				// always report the first axis as a Joystick
 				result = k_eControllerAxis_Joystick;
 			}
@@ -133,7 +131,7 @@ namespace vr {
 
 		virtual uint32_t GetStringTrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize, ETrackedPropertyError *pError = 0L ) {
 			uint32_t ret = wrapped->GetStringTrackedDeviceProperty(unDeviceIndex, prop, pchValue, unBufferSize, pError);
-			if (prop == Prop_TrackingSystemName_String && config.enableOculusEmulation) {
+			if (prop == Prop_TrackingSystemName_String && Config::Instance().enableOculusEmulationFix) {
 				strncpy(pchValue, "oculus", unBufferSize);
 			}
 			return ret;

@@ -36,7 +36,7 @@ namespace vr {
 			varAU4(const1);
 		} shaderConstants;
 
-		void Create(ID3D11Texture2D *tex, IVRSystem *system, const Config &config) {
+		void Create(ID3D11Texture2D *tex) {
 			log() << "Creating resources for CAS\n";
 			tex->GetDevice( device.GetAddressOf() );
 			device->GetImmediateContext( context.GetAddressOf() );
@@ -44,8 +44,8 @@ namespace vr {
 			tex->GetDesc( &std );
 
 			// create output texture
-			outputWidth = std.Width * config.casUpscale;
-			outputHeight = std.Height * config.casUpscale;
+			outputWidth = std.Width * Config::Instance().casUpscale;
+			outputHeight = std.Height * Config::Instance().casUpscale;
 			log() << "Creating CAS texture of size " << outputWidth << "x" << outputHeight << "\n";
 			D3D11_TEXTURE2D_DESC td;
 			td.Width = outputWidth;
@@ -85,7 +85,7 @@ namespace vr {
 			}
 
 			// create shader constants buffer
-			CasSetup( shaderConstants.const0, shaderConstants.const1, config.sharpness, std.Width, std.Height, td.Width, td.Height );
+			CasSetup( shaderConstants.const0, shaderConstants.const1, Config::Instance().sharpness, std.Width, std.Height, td.Width, td.Height );
 			D3D11_BUFFER_DESC bd;
 			bd.Usage = D3D11_USAGE_IMMUTABLE;
 			bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -135,11 +135,11 @@ namespace vr {
 	};
 
 	EVRCompositorError WrappedIVRCompositor::Submit( EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds, EVRSubmitFlags nSubmitFlags ) {
-		if ( eEye == Eye_Left && pTexture->eType == TextureType_DirectX && config.casEnabled ) {
+		if ( eEye == Eye_Left && pTexture->eType == TextureType_DirectX && Config::Instance().casEnabled ) {
 			ID3D11Texture2D *texture = (ID3D11Texture2D*)pTexture->handle;
 			if (casResources == nullptr) {
 				casResources = new CASRenderResources;
-				casResources->Create( texture, system, config );
+				casResources->Create( texture );
 				log() << std::flush;
 			}
 			if (casResources->created) {
@@ -152,7 +152,7 @@ namespace vr {
 				casResources->lastSwitch = GetTickCount();
 				casResources->enabled = !casResources->enabled;
 			}
-			if (casResources->enabled || !config.casAlternate) {
+			if (casResources->enabled || !Config::Instance().casAlternate) {
 				const_cast<Texture_t*>(pTexture)->handle = casResources->outputTexture.Get();
 			}
 		}

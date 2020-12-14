@@ -170,12 +170,13 @@ void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peEr
 	}
 
 	void *interface = g_pHmdSystem->GetGenericInterface(pchInterfaceVersion, peError);
-	if (strcmp(pchInterfaceVersion, IVRSystem_Version) == 0) {
+	if (strcmp(pchInterfaceVersion, IVRSystem_Version) == 0 && Config::Instance().enableOculusEmulationFix) {
+		vr::log() << "Injecting Oculus emulation fix\n";
 		wrappedSystem.wrapped = (IVRSystem*)interface;
-		wrappedCompositor.system = wrappedSystem.wrapped;
 		return &wrappedSystem;
 	}
-	if (strcmp(pchInterfaceVersion, IVRCompositor_Version) == 0) {
+	if (strcmp(pchInterfaceVersion, IVRCompositor_Version) == 0 && Config::Instance().casEnabled) {
+		vr::log() << "Injecting Contrast Adaptive Sharpening post-processing filter\n";
 		wrappedCompositor.wrapped = (IVRCompositor*)interface;
 		return &wrappedCompositor;
 	}

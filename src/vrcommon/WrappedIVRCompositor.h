@@ -6,8 +6,6 @@ namespace vr {
 	class WrappedIVRCompositor : public IVRCompositor {
 	public:
 		IVRCompositor *wrapped;
-		IVRSystem *system;
-		Config config = Config::Load();
 
 		virtual void SetTrackingSpace( ETrackingUniverseOrigin eOrigin ) { wrapped->SetTrackingSpace( eOrigin ); }
 
