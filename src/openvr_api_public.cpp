@@ -20,7 +20,6 @@ namespace vr
 {
 namespace {
 	WrappedIVRSystem wrappedSystem;
-	WrappedIVRCompositor wrappedCompositor;
 }
 
 static void *g_pVRModule = NULL;
@@ -169,18 +168,18 @@ void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peEr
 		return NULL;
 	}
 
-	void *interface = g_pHmdSystem->GetGenericInterface(pchInterfaceVersion, peError);
+	void *iface = g_pHmdSystem->GetGenericInterface(pchInterfaceVersion, peError);
 	if (strcmp(pchInterfaceVersion, IVRSystem_Version) == 0 && Config::Instance().enableOculusEmulationFix) {
 		vr::log() << "Injecting Oculus emulation fix\n";
-		wrappedSystem.wrapped = (IVRSystem*)interface;
+		wrappedSystem.wrapped = (IVRSystem*)iface;
 		return &wrappedSystem;
 	}
-	if (strcmp(pchInterfaceVersion, IVRCompositor_Version) == 0 && Config::Instance().casEnabled) {
+	if (strcmp(pchInterfaceVersion, IVRCompositor_Version) == 0 && (Config::Instance().casEnabled || Config::Instance().rdmEnabled)) {
 		vr::log() << "Injecting Contrast Adaptive Sharpening post-processing filter\n";
-		wrappedCompositor.wrapped = (IVRCompositor*)interface;
-		return &wrappedCompositor;
+		WrappedIVRCompositor::Instance().wrapped = (IVRCompositor*)iface;
+		return &WrappedIVRCompositor::Instance();
 	}
-	return interface;
+	return iface;
 }
 
 bool VR_IsInterfaceVersionValid(const char *pchInterfaceVersion)

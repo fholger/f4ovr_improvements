@@ -22,7 +22,7 @@ elseif(WIN32)
 endif()
 
 # Add include folders.
-include_directories(${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/headers ${CMAKE_SOURCE_DIR}/src/vrcommon ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/headers ${CMAKE_SOURCE_DIR}/src/vrcommon ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src/minhook/include)
 
 if(USE_CUSTOM_LIBCXX)
 	link_directories(
@@ -55,11 +55,24 @@ set(CAS_FILES
 	cas/cas.sharpen.hlsl
 	cas/cas.upscale.hlsl
 )
+set(RDM_FILES
+	rdm/fullscreen_tri.vert.hlsl
+	rdm/radial_density_mask.frag.hlsl
+)
+
+set(MINHOOK_FILES
+    minhook/src/buffer.c
+    minhook/src/hook.c
+    minhook/src/trampoline.c
+    minhook/src/hde/hde64.c
+)
 
 set(SOURCE_FILES
 	${CORE_FILES}
 	${VRCOMMON_FILES}
     ${CAS_FILES}
+	${RDM_FILES}
+    ${MINHOOK_FILES}
 )
 
 source_group("Src" FILES
@@ -72,6 +85,14 @@ source_group("VRCommon" FILES
 
 source_group("CAS" FILES
     ${CAS_FILES}
+)
+
+source_group("RDM" FILES
+    ${RDM_FILES}
+)
+
+source_group("Minhook" FILES
+    ${MINHOOK_FILES}
 )
 
 # Build the library.
@@ -115,6 +136,14 @@ set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_TYPE Compute)
 set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_MODEL "5.0")
 set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_cas_upscale.h")
 set_property(SOURCE cas/cas.upscale.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_CASUpscaleShader")
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_TYPE Vertex)
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_rdm_fullscreen_tri.h")
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_RDMFullscreenTriShader")
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_TYPE Pixel)
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_rdm_mask.h")
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_RDMMaskShader")
 
 target_link_libraries(${LIBNAME} ${EXTRA_LIBS})
 

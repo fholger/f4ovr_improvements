@@ -1,4 +1,6 @@
 #pragma once
+#include <d3d11.h>
+
 #include "openvr.h"
 #include "Config.h"
 
@@ -6,6 +8,8 @@ namespace vr {
 	class WrappedIVRCompositor : public IVRCompositor {
 	public:
 		IVRCompositor *wrapped;
+
+		static WrappedIVRCompositor& Instance();
 
 		virtual void SetTrackingSpace( ETrackingUniverseOrigin eOrigin ) { wrapped->SetTrackingSpace( eOrigin ); }
 
@@ -139,6 +143,11 @@ namespace vr {
 
 		struct CASRenderResources;
 		CASRenderResources *casResources = nullptr;
+
+		struct RDMRenderResources;
+		RDMRenderResources *rdmResources = nullptr;
+
+		void ApplyRadialDensityMask( ID3D11DepthStencilView *depthView );
 
 		~WrappedIVRCompositor();
 	};

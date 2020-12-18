@@ -6,17 +6,47 @@
 #include <wrl/client.h>
 #include "shader_cas_sharpen.h"
 #include "shader_cas_upscale.h"
+#include "shader_rdm_fullscreen_tri.h"
+#include "shader_rdm_mask.h"
 #include <stdint.h>
 #define A_CPU 1
 #include "cas/ffx_a.h"
 #include "cas/ffx_cas.h"
+#include "MinHook.h"
 
 using Microsoft::WRL::ComPtr;
+
+typedef HRESULT(__stdcall* D3D11_ClearDepthStencilView_t)(ID3D11DeviceContext *context, ID3D11DepthStencilView *pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil);
+D3D11_ClearDepthStencilView_t pD3D11_ClearDepthStencilView = nullptr;
+
+HRESULT __stdcall D3D11_ClearDepthStencilView_Hook(ID3D11DeviceContext *context, ID3D11DepthStencilView *pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil) {
+	vr::log() << "ClearDepthStencilView hook called\n";
+	HRESULT ret = pD3D11_ClearDepthStencilView( context, pDepthStencilView, ClearFlags, Depth, Stencil );
+	vr::WrappedIVRCompositor::Instance().ApplyRadialDensityMask(pDepthStencilView);
+	return ret;
+}
+
+MH_STATUS WINAPI MH_CreateHookVirtualEx(
+    LPVOID pInstance, UINT methodPos, LPVOID pDetour, LPVOID *ppOriginal, LPVOID *ppTarget)
+{
+    LPVOID* pVMT = *((LPVOID**)pInstance);
+    LPVOID  pTarget = pVMT[methodPos];
+
+    if (ppTarget != NULL)
+        *ppTarget = pTarget;
+
+    return MH_CreateHook(pTarget, pDetour, ppOriginal);
+}
 
 namespace vr {
 	std::ostream& log() {
 		static std::ofstream logFile ("openvr_log.txt");
 		return logFile;
+	}
+
+	WrappedIVRCompositor & WrappedIVRCompositor::Instance() {
+		static WrappedIVRCompositor instance;
+		return instance;
 	}
 
 	struct WrappedIVRCompositor::CASRenderResources {
@@ -134,6 +164,86 @@ namespace vr {
 		}
 	};
 
+	struct WrappedIVRCompositor::RDMRenderResources {
+		bool enabled = true;
+		DWORD lastSwitch = 0;
+
+		ComPtr<ID3D11Device> device;
+		ComPtr<ID3D11DeviceContext> context;
+		ComPtr<ID3D11VertexShader> vertexShader;
+		ComPtr<ID3D11PixelShader> pixelShader;
+		ComPtr<ID3D11Buffer> constantBuffer;
+		D3D11_VIEWPORT viewport;
+
+		struct ShaderConstants {
+			float radius[4];
+			float invClusterResolution[4];
+		} shaderConstants;
+
+		void Create(ID3D11Texture2D *tex) {
+			log() << "Creating resources for RDM\n";
+			tex->GetDevice( device.GetAddressOf() );
+			device->GetImmediateContext( context.GetAddressOf() );
+
+			device->CreateVertexShader( g_RDMFullscreenTriShader, sizeof( g_RDMFullscreenTriShader ), nullptr, vertexShader.GetAddressOf() );
+			device->CreatePixelShader( g_RDMMaskShader, sizeof( g_RDMMaskShader ), nullptr, pixelShader.GetAddressOf() );
+
+			D3D11_TEXTURE2D_DESC td;
+			tex->GetDesc( &td );
+			shaderConstants.radius[0] = Config::Instance().rdmInnerRadius;
+			shaderConstants.radius[1] = Config::Instance().rdmMidRadius;
+			shaderConstants.radius[2] = Config::Instance().rdmOuterRadius;
+			shaderConstants.invClusterResolution[0] = 8.f / td.Width;
+			shaderConstants.invClusterResolution[1] = 8.f / td.Height;
+			D3D11_BUFFER_DESC bd;
+			bd.Usage = D3D11_USAGE_IMMUTABLE;
+			bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			bd.CPUAccessFlags = 0;
+			bd.MiscFlags = 0;
+			bd.StructureByteStride = 0;
+			bd.ByteWidth = sizeof(ShaderConstants);
+			D3D11_SUBRESOURCE_DATA init;
+			init.SysMemPitch = 0;
+			init.SysMemSlicePitch = 0;
+			init.pSysMem = &shaderConstants;
+			device->CreateBuffer( &bd, &init, constantBuffer.GetAddressOf() );
+
+			viewport.TopLeftX = viewport.TopLeftY = viewport.MinDepth = 0;
+			viewport.Width = td.Width;
+			viewport.Height = td.Height;
+			viewport.MaxDepth = 1;
+
+			// hook D3D11's ClearDepthStencil so that we can draw the radial density mask first thing into the depth buffer
+			log() << "Hooking into D3D ClearDepthStencil call\n";
+			MH_Initialize();
+			LPVOID pTarget;
+			MH_CreateHookVirtualEx( context.Get(), 53, &D3D11_ClearDepthStencilView_Hook, (void**)&pD3D11_ClearDepthStencilView, &pTarget );
+			MH_EnableHook( pTarget );
+		}
+
+		void ApplyMask(ID3D11DepthStencilView *depthView) {
+			if (GetTickCount() - lastSwitch > 5000) {
+				lastSwitch = GetTickCount();
+				enabled = !enabled;
+			}
+			if (!enabled) {
+				return;
+			}
+
+			context->VSSetShader( vertexShader.Get(), nullptr, 0 );
+			context->PSSetShader( pixelShader.Get(), nullptr, 0 );
+			context->PSSetConstantBuffers( 0, 1, constantBuffer.GetAddressOf() );
+			context->IASetInputLayout( nullptr );
+			context->IASetPrimitiveTopology( D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+			context->IASetVertexBuffers( 0, 0, nullptr, nullptr, nullptr );
+			context->IASetIndexBuffer( nullptr, DXGI_FORMAT_UNKNOWN, 0 );
+			context->OMSetRenderTargets( 0, nullptr, depthView );
+			context->RSSetViewports( 1, &viewport );
+
+			context->Draw( 3, 0 );
+		}
+	};
+
 	EVRCompositorError WrappedIVRCompositor::Submit( EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds, EVRSubmitFlags nSubmitFlags ) {
 		if ( eEye == Eye_Left && pTexture->eType == TextureType_DirectX && Config::Instance().casEnabled ) {
 			ID3D11Texture2D *texture = (ID3D11Texture2D*)pTexture->handle;
@@ -145,6 +255,12 @@ namespace vr {
 			if (casResources->created) {
 				casResources->Apply(texture);
 			}
+		}
+
+		if (Config::Instance().rdmEnabled && rdmResources == nullptr) {
+			ID3D11Texture2D *texture = (ID3D11Texture2D*)pTexture->handle;
+			rdmResources = new RDMRenderResources;
+			rdmResources->Create(texture);
 		}
 
 		if (casResources && casResources->created) {
@@ -160,7 +276,13 @@ namespace vr {
 		return wrapped->Submit( eEye, pTexture, pBounds, nSubmitFlags );
 	}
 
+	void WrappedIVRCompositor::ApplyRadialDensityMask(ID3D11DepthStencilView *depthView) {
+		rdmResources->ApplyMask(depthView);
+	}
+
+
 	WrappedIVRCompositor::~WrappedIVRCompositor() {
 		delete casResources;
+		delete rdmResources;
 	}
 }
