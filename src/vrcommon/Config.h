@@ -10,6 +10,7 @@ namespace vr {
 		float casUpscale = 1.f;
 		bool casEnabled = false;
 		float sharpness = 1.f;
+		float maxColorDelta = 1.f;
 		bool casAlternate = false;
 
 		static Config Load() {
@@ -25,6 +26,9 @@ namespace vr {
 					config.sharpness = sharpen.get("sharpness", 1.0).asFloat();
 					if (config.sharpness < 0) config.sharpness = 0;
 					if (config.sharpness > 1) config.sharpness = 1;
+					config.maxColorDelta = sharpen.get("maxColorDelta", 1.0).asFloat();
+					if (config.maxColorDelta < 0) config.maxColorDelta = 0;
+					if (config.maxColorDelta > 1) config.maxColorDelta = 1;
 					config.casUpscale = sharpen.get("upscale", 1.0).asFloat();
 					if (config.casUpscale < 1) config.casUpscale = 1;
 					if (config.casUpscale > 2) config.casUpscale = 2;

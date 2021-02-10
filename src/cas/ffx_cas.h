@@ -376,6 +376,7 @@ A_STATIC void CasSetup(
  outAU4 const0,
  outAU4 const1,
  AF1 sharpness, // 0 := default (lower ringing), 1 := maximum (higest ringing)
+ AF1 maxColorDelta, // 0 := no sharpening, 1 := unlimited sharpening
  AF1 inputSizeInPixelsX,
  AF1 inputSizeInPixelsY,
  AF1 outputSizeInPixelsX,
@@ -387,11 +388,11 @@ A_STATIC void CasSetup(
   const0[3]=AU1_AF1(AF1_(0.5)*inputSizeInPixelsY*ARcpF1(outputSizeInPixelsY)-AF1_(0.5));
   // Sharpness value.
   AF1 sharp=-ARcpF1(ALerpF1(8.0,5.0,ASatF1(sharpness)));
-  varAF2(hSharp)=initAF2(sharp,0.0);
+  varAF2(hSharpAndMaxColorDelta)=initAF2(sharp,maxColorDelta); //there was extra bytes here to slip maxColorDelta for the GPU
   const1[0]=AU1_AF1(sharp);
-  const1[1]=AU1_AH2_AF2(hSharp);
+  const1[1]=AU1_AH2_AF2(hSharpAndMaxColorDelta);
   const1[2]=AU1_AF1(AF1_(8.0)*inputSizeInPixelsX*ARcpF1(outputSizeInPixelsX));
-  const1[3]=0;}
+  const1[3]=AU1_AF1(maxColorDelta);}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //_____________________________________________________________/\_______________________________________________________________
@@ -534,6 +535,11 @@ A_STATIC void CasSetup(
     pixG=ASatF1((b.g*wG+d.g*wG+f.g*wG+h.g*wG+e.g)*rcpWeightG);
     pixB=ASatF1((b.b*wB+d.b*wB+f.b*wB+h.b*wB+e.b)*rcpWeightB);
    #endif
+   //clamping final values
+   AF1 maxColorDelta=AF1_AU1(const1.w);
+   pixR=clamp(pixR,e.r-maxColorDelta,e.r+maxColorDelta);
+   pixG=clamp(pixG,e.g-maxColorDelta,e.g+maxColorDelta);
+   pixB=clamp(pixB,e.b-maxColorDelta,e.b+maxColorDelta);
    return;}
 //------------------------------------------------------------------------------------------------------------------------------
   // Scaling algorithm adaptively interpolates between nearest 4 results of the non-scaling algorithm.
@@ -1061,6 +1067,11 @@ A_STATIC void CasSetup(
     pixG=ASatH2((bG*wG+dG*wG+fG*wG+hG*wG+eG)*rcpWeightG);
     pixB=ASatH2((bB*wB+dB*wB+fB*wB+hB*wB+eB)*rcpWeightB);
    #endif
+   //clamping final values
+   AH1 maxColorDelta=AH2_AU1(const1.y).y;
+   pixR=clamp(pixR,eR-AH2_(maxColorDelta),eR+AH2_(maxColorDelta));
+   pixG=clamp(pixG,eG-AH2_(maxColorDelta),eG+AH2_(maxColorDelta));
+   pixB=clamp(pixB,eB-AH2_(maxColorDelta),eB+AH2_(maxColorDelta));
    return;}
 //------------------------------------------------------------------------------------------------------------------------------
   // Scaling algorithm adaptively interpolates between nearest 4 results of the non-scaling algorithm.
