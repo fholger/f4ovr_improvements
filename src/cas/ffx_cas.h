@@ -535,11 +535,19 @@ A_STATIC void CasSetup(
     pixG=ASatF1((b.g*wG+d.g*wG+f.g*wG+h.g*wG+e.g)*rcpWeightG);
     pixB=ASatF1((b.b*wB+d.b*wB+f.b*wB+h.b*wB+e.b)*rcpWeightB);
    #endif
-   //clamping final values
-   AF1 maxColorDelta=AF1_AU1(const1.w);
-   pixR=clamp(pixR,e.r-maxColorDelta,e.r+maxColorDelta);
-   pixG=clamp(pixG,e.g-maxColorDelta,e.g+maxColorDelta);
-   pixB=clamp(pixB,e.b-maxColorDelta,e.b+maxColorDelta);
+   
+    // Debug a checker pattern of on/off tiles for visual inspection of the clamping effect
+    #ifdef CAS_CLAMP_DEBUG_CHECKER
+    if ((((ip.x ^ ip.y) >> 8u) & 1u) == 0u) {
+        return;
+    }
+    #endif
+    
+    //clamping final values
+    AF1 maxColorDelta=AF1_AU1(const1.w);
+    pixR=clamp(pixR,e.r-maxColorDelta,e.r+maxColorDelta);
+    pixG=clamp(pixG,e.g-maxColorDelta,e.g+maxColorDelta);
+    pixB=clamp(pixB,e.b-maxColorDelta,e.b+maxColorDelta);
    return;}
 //------------------------------------------------------------------------------------------------------------------------------
   // Scaling algorithm adaptively interpolates between nearest 4 results of the non-scaling algorithm.
