@@ -85,7 +85,7 @@ namespace vr {
 			}
 
 			// create shader constants buffer
-			CasSetup( shaderConstants.const0, shaderConstants.const1, Config::Instance().sharpness, std.Width, std.Height, td.Width, td.Height );
+			CasSetup( shaderConstants.const0, shaderConstants.const1, Config::Instance().sharpness, Config::Instance().maxColorDelta, std.Width, std.Height, td.Width, td.Height );
 			D3D11_BUFFER_DESC bd;
 			bd.Usage = D3D11_USAGE_IMMUTABLE;
 			bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
